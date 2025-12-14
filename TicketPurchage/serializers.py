@@ -11,7 +11,10 @@ class BookingSerializer(serializers.Serializer):
   quantity = serializers.IntegerField(min_value=1)
   
 # TicketPurchage/serializers.py
-
+class CancelTicketSerializer(serializers.Serializer):
+  purchage_id = serializers.IntegerField(min_value=1)
+  quantity = serializers.IntegerField(min_value=1)
+  
 from rest_framework import serializers
 from .models import TicketPurchase # Ensure TicketPurchase is imported here!
 

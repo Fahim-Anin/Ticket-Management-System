@@ -7,6 +7,31 @@ from .models import Destination
 from Inventory.models import Inventory # Make sure to import Inventory
 
 # We can reuse the DestinationAdmin from before, but add Inventory as an Inline!
+
+# Click "Add Destination"
+#    ↓
+# DestinationAdmin builds form
+#    ↓
+# You click Save
+#    ↓
+# Destination.save() → DB
+#    ↓
+    # InventoryInline -> creates  form on Inventory table
+# Inventory.save() → DB (inline)
+#    ↓
+# Admin loads list page
+#    ↓
+# total_slots_display(obj) is CALLED
+#    ↓
+# Value is DISPLAYED
+
+
+
+
+
+
+
+
 class InventoryInline(admin.TabularInline):
     # imagine the boss says:
 
@@ -32,7 +57,7 @@ class InventoryInline(admin.TabularInline):
 # he will also see a small table:
     """Allows Inventory to be added/edited directly on the Destination page."""
     model = Inventory # Builds an Inline Formset for Inventory
-    extra = 1 # Show 1 empty form by default  Django shows 1 empty row for Inventory.
+    extra = 2 # Show 1 empty form by default  Django shows 1 empty row for Inventory.
     fields = ('total_slots', 'available_slots',)
     # Prevents admins from setting available slots higher than total slots manually
     readonly_fields = ('available_slots',) 
@@ -45,6 +70,7 @@ class InventoryInline(admin.TabularInline):
 @admin.register(Destination)
 class DestinationAdmin(admin.ModelAdmin):
     # ... (Keep the previous list_display, list_filter, etc.) ...
+    inlines = [InventoryInline] 
     list_display = ('name', 'is_active', 'total_slots_display', 'created_at')
     
     # This list allows the Admin to see the slot count right on the Destination list page
@@ -55,7 +81,7 @@ class DestinationAdmin(admin.ModelAdmin):
     total_slots_display.short_description = "Available / Total Slots"
 
     # Add the Inline here:
-    inlines = [InventoryInline] 
+    
     #Lets you edit Inventory inside Destination admin page.
     
 #DestinationAdmin

@@ -16,10 +16,44 @@ from .serializers import BookingSerializer
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated # We need this import
 from .models import TicketPurchase
-from .serializers import BookingSerializer # Assuming you want simple output
+from .serializers import BookingSerializer,CancelTicketSerializer # Assuming you want simple output
 
 # ... other imports (APIView, transaction, etc.)
 # The secure Booking View
+
+class CancelTicketAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = CancelTicketSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        purchage_id = serializer.validated_data['purchage_id']
+        quantity_to_cancel = serializer.validated_data['quantity']
+        try:
+            with transaction.atomic():
+                purchage = TicketPurchase.objects.select_for_update().get(pk=purchage_id, user= request.user)
+                if quantity_to_cancel>purchage.quantity:
+                    return Response(
+                        {"error": "Cannot cancel more tickets than were purchased for this item."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )    
+                # update increased inventory table slot     
+                purchage.inventory.available_slots += quantity_to_cancel
+                purchage.inventory.save()
+                
+                #update TicketPurchage table quantity slot
+                purchage.quantity -= quantity_to_cancel
+                purchage.save() # Save the updated purchase
+        except TicketPurchase.DoesNotExist:
+            return Response(
+                {"error": "Purchase not found or you do not have permission to cancel it."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        # 9. Handle any other database errors
+        except Exception as e:
+            return Response(
+                {"error": "An unexpected error occurred during cancellation."}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )        
+                
 class BookingCreateAPIView(APIView):
     # Remember to set the permission class in settings.py or here!
     # permission_classes = [IsAuthenticated] 
@@ -28,6 +62,8 @@ class BookingCreateAPIView(APIView):
         # 1. Validate the incoming data
         serializer = BookingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        
+        
 #         serializer.validated_data = {
 #   "inventory_id": 4,
 #   "quantity": 3
